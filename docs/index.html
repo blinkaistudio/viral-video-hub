@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1017">
+<title>🔥 Viral Video Hub</title>
+<style>
+:root{
+  --bg:#0d1017; --surface:#151a24; --surface2:#1c2330; --border:#28313f;
+  --ink:#e8ecf3; --ink2:#9aa5b5; --ink3:#66707f;
+  --accent:#ff5c5c; --hot:#ffb054;
+  --yt:#ff4e45; --tt:#4de8de; --ig:#ff6fa5; --vm:#5ab8ff; --rd:#ffa04d;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Pretendard',-apple-system,'Segoe UI','Malgun Gothic',sans-serif;line-height:1.45;padding-bottom:60px}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1200px;margin:0 auto;padding:0 14px}
+
+header{position:sticky;top:0;z-index:20;background:rgba(13,16,23,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.hd{display:flex;align-items:baseline;gap:10px;padding:14px 0 10px;flex-wrap:wrap}
+.hd h1{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.hd .date{font-size:12.5px;color:var(--ink2)}
+.hd .upd{font-size:11.5px;color:var(--ink3);margin-left:auto}
+.stale{font-size:11.5px;color:var(--hot);width:100%;padding-bottom:8px;display:none}
+
+/* 인사이트 패널 */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin:14px 0;overflow:hidden}
+.panel-hd{display:flex;align-items:center;gap:8px;padding:13px 16px;cursor:pointer;user-select:none;font-weight:700;font-size:14.5px}
+.panel-hd .tg{margin-left:auto;color:var(--ink3);transition:transform .2s}
+.panel.open .tg{transform:rotate(180deg)}
+.panel-bd{display:none;padding:0 16px 16px}
+.panel.open .panel-bd{display:block}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.tile{background:var(--surface2);border-radius:10px;padding:11px 13px}
+.tile .v{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.tile .l{font-size:11.5px;color:var(--ink2);margin-top:2px}
+.sec-t{font-size:12px;font-weight:700;color:var(--ink2);margin:14px 0 7px;text-transform:uppercase;letter-spacing:.4px}
+.cmt{list-style:none}
+.cmt li{font-size:13.5px;color:var(--ink);padding:7px 0 7px 22px;position:relative;border-bottom:1px dashed var(--border)}
+.cmt li:last-child{border-bottom:0}
+.cmt li::before{content:"💡";position:absolute;left:0;font-size:12px;top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.kchip{background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:4.5px 11px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.kchip:active{background:var(--border)}
+.kchip .n{color:var(--ink3);font-size:11px;margin-left:3px}
+.kchip.rise{border-color:#7a4a1e;color:var(--hot)}
+.kchip.cross{border-color:#274a6e;color:#7cc4ff}
+.vel-list{list-style:none}
+.vel-list li{padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px;display:flex;gap:8px;align-items:baseline}
+.vel-list li:last-child{border-bottom:0}
+.vel-list .spd{color:var(--hot);font-weight:700;white-space:nowrap}
+.vel-list a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+
+/* 필터 바 */
+.filters{display:flex;gap:6px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fchip{flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:6.5px 14px;font-size:13px;cursor:pointer;color:var(--ink2);font-weight:600;display:flex;gap:5px;align-items:center}
+.fchip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fchip .dot{width:8px;height:8px;border-radius:50%}
+.fchip .cnt{font-size:11px;opacity:.65}
+.bar2{display:flex;gap:8px;padding-bottom:14px;align-items:center}
+.bar2 select{background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:9px;padding:7.5px 10px;font-size:13px;font-family:inherit}
+.bar2 input{flex:1;background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:9px;padding:7.5px 12px;font-size:13.5px;font-family:inherit;min-width:0}
+.bar2 input::placeholder{color:var(--ink3)}
+
+/* 카드 그리드 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:11px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.thumb{position:relative;aspect-ratio:16/10;background:var(--surface2);overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:34px;opacity:.35}
+.badge{position:absolute;top:7px;left:7px;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:6px;color:#0a0c10;letter-spacing:.2px}
+.b-youtube{background:var(--yt);color:#fff}.b-tiktok{background:var(--tt)}.b-instagram{background:var(--ig)}.b-vimeo{background:var(--vm)}.b-reddit{background:var(--rd)}
+.dur{position:absolute;right:7px;bottom:7px;background:rgba(0,0,0,.72);color:#fff;font-size:10.5px;padding:2px 6px;border-radius:5px;font-weight:600}
+.meta{padding:9px 11px 11px;display:flex;flex-direction:column;gap:4px;flex:1}
+.t{font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+.ch{font-size:11.5px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st{font-size:11.5px;color:var(--ink3);display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.st .vw{color:var(--ink2);font-weight:600}
+.st .hot{color:var(--hot);font-weight:700}
+.empty{text-align:center;color:var(--ink3);padding:60px 0;font-size:14px;grid-column:1/-1}
+footer{text-align:center;color:var(--ink3);font-size:11.5px;padding:26px 0 10px}
+.more{display:block;margin:18px auto 0;background:var(--surface);border:1px solid var(--border);color:var(--ink);border-radius:99px;padding:10px 26px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hd">
+      <h1>🔥 Viral Video Hub</h1>
+      <span class="date" id="date"></span>
+      <span class="upd" id="upd"></span>
+      <div class="stale" id="stale"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="panel open" id="insight-panel">
+    <div class="panel-hd" onclick="this.parentElement.classList.toggle('open')">📊 오늘의 인사이트 <span class="tg">▾</span></div>
+    <div class="panel-bd" id="insights"></div>
+  </div>
+
+  <div class="filters" id="pf"></div>
+  <div class="filters" id="rf"></div>
+  <div class="bar2">
+    <select id="sort">
+      <option value="velocity">🔥 바이럴 속도순</option>
+      <option value="views">👁 조회수순</option>
+      <option value="recent">🕐 최신순</option>
+    </select>
+    <input id="q" type="search" placeholder="제목·채널·키워드 검색">
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <button class="more" id="more" style="display:none">더 보기</button>
+  <footer id="ft"></footer>
+</div>
+
+<script>
+const PLAT = {
+  youtube:{name:'유튜브',color:'var(--yt)'}, tiktok:{name:'틱톡',color:'var(--tt)'},
+  instagram:{name:'인스타',color:'var(--ig)'}, vimeo:{name:'비메오',color:'var(--vm)'},
+  reddit:{name:'레딧',color:'var(--rd)'}
+};
+let DATA=null, state={platform:'all', region:'all', sort:'velocity', q:'', limit:60};
+
+const $=id=>document.getElementById(id);
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>{if(n==null)return'';if(n>=1e8)return(n/1e8).toFixed(1)+'억';if(n>=1e4){const v=n/1e4;return(v<100?v.toFixed(1):Math.round(v))+'만'}return n.toLocaleString()};
+const fdur=s=>{if(!s)return'';const m=Math.floor(s/60),ss=String(Math.floor(s%60)).padStart(2,'0');return s>=3600?`${Math.floor(s/3600)}:${String(m%60).padStart(2,'0')}:${ss}`:`${m}:${ss}`};
+
+async function boot(){
+  try{
+    const r=await fetch('data.json?'+Date.now());
+    DATA=await r.json();
+  }catch(e){
+    $('grid').innerHTML='<div class="empty">data.json을 불러올 수 없습니다.<br>로컬에서 열었다면 갱신.bat 로 실행하거나 배포 URL로 접속하세요.</div>';
+    return;
+  }
+  $('date').textContent=DATA.date;
+  $('upd').textContent='업데이트 '+DATA.generated_at_kst;
+  const stale=Object.entries(DATA.sources).filter(([,s])=>s.stale);
+  if(stale.length){
+    $('stale').style.display='block';
+    $('stale').textContent='⚠️ '+stale.map(([k])=>PLAT[k]?.name||k).join(', ')+' 은(는) 오늘 수집 실패 — 직전 데이터 표시 중';
+  }
+  renderInsights(); renderFilters(); render();
+  $('sort').onchange=e=>{state.sort=e.target.value;state.limit=60;render()};
+  let deb;$('q').oninput=e=>{clearTimeout(deb);deb=setTimeout(()=>{state.q=e.target.value.trim().toLowerCase();state.limit=60;render()},200)};
+  $('more').onclick=()=>{state.limit+=60;render()};
+}
+
+function renderInsights(){
+  const ins=DATA.insights, el=$('insights');
+  let h='<div class="tiles">';
+  h+=`<div class="tile"><div class="v">${ins.total_videos}</div><div class="l">수집 영상</div></div>`;
+  h+=`<div class="tile"><div class="v">${ins.total_views_text||fmt(ins.total_views)}</div><div class="l">합산 조회수</div></div>`;
+  if(ins.shorts_ratio!=null)h+=`<div class="tile"><div class="v">${ins.shorts_ratio}%</div><div class="l">숏폼(90초↓) 비중</div></div>`;
+  const okN=Object.values(DATA.sources).filter(s=>s.ok).length;
+  h+=`<div class="tile"><div class="v">${okN}/${Object.keys(DATA.sources).length}</div><div class="l">소스 정상</div></div>`;
+  h+='</div>';
+
+  if(ins.comments?.length){h+='<div class="sec-t">제작자 노트</div><ul class="cmt">'+ins.comments.map(c=>`<li>${esc(c)}</li>`).join('')+'</ul>'}
+  if(ins.rising?.length){h+='<div class="sec-t">🚀 어제 대비 급상승 키워드</div><div class="chips">'+ins.rising.map(r=>`<span class="kchip rise" data-k="${esc(r.keyword)}">${esc(r.keyword)}<span class="n">${r.yesterday}→${r.today}</span></span>`).join('')+'</div>'}
+  if(ins.cross_platform?.length){h+='<div class="sec-t">🌐 크로스 플랫폼 토픽 (2개+ 플랫폼 동시 등장)</div><div class="chips">'+ins.cross_platform.map(c=>`<span class="kchip cross" data-k="${esc(c.keyword)}">${esc(c.keyword)}<span class="n">${c.platforms.length}곳</span></span>`).join('')+'</div>'}
+  if(ins.top_keywords?.length){h+='<div class="sec-t">🔑 오늘의 키워드</div><div class="chips">'+ins.top_keywords.slice(0,18).map(k=>`<span class="kchip" data-k="${esc(k.keyword)}">${esc(k.keyword)}<span class="n">${k.count}</span></span>`).join('')+'</div>'}
+  if(ins.top_velocity?.length){h+='<div class="sec-t">⚡ 시간당 조회수 TOP</div><ul class="vel-list">'+ins.top_velocity.map(t=>`<li><span class="spd">${fmt(t.velocity)}/h</span><a href="${esc(t.url)}" target="_blank" rel="noopener">[${PLAT[t.platform]?.name||t.platform}] ${esc(t.title)}</a></li>`).join('')+'</ul>'}
+  el.innerHTML=h;
+  el.querySelectorAll('.kchip').forEach(c=>c.onclick=()=>{$('q').value=c.dataset.k;state.q=c.dataset.k.toLowerCase();state.limit=60;render();window.scrollTo({top:el.getBoundingClientRect().bottom+window.scrollY,behavior:'smooth'})});
+}
+
+function renderFilters(){
+  const counts={all:DATA.videos.length};
+  DATA.videos.forEach(v=>counts[v.platform]=(counts[v.platform]||0)+1);
+  $('pf').innerHTML=[['all','전체','var(--ink2)'],...Object.entries(PLAT).map(([k,p])=>[k,p.name,p.color])]
+    .filter(([k])=>counts[k])
+    .map(([k,n,c])=>`<span class="fchip${state.platform===k?' on':''}" data-p="${k}"><span class="dot" style="background:${c}"></span>${n}<span class="cnt">${counts[k]||0}</span></span>`).join('');
+  $('pf').querySelectorAll('.fchip').forEach(c=>c.onclick=()=>{state.platform=c.dataset.p;state.limit=60;renderFilters();render()});
+  const regions=[['all','🌍 전체'],['KR','🇰🇷 국내'],['Global','🌐 글로벌']];
+  $('rf').innerHTML=regions.map(([k,n])=>`<span class="fchip${state.region===k?' on':''}" data-r="${k}">${n}</span>`).join('');
+  $('rf').querySelectorAll('.fchip').forEach(c=>c.onclick=()=>{state.region=c.dataset.r;state.limit=60;renderFilters();render()});
+}
+
+function render(){
+  let vs=DATA.videos.slice();
+  if(state.platform!=='all')vs=vs.filter(v=>v.platform===state.platform);
+  if(state.region!=='all')vs=vs.filter(v=>v.region===state.region);
+  if(state.q)vs=vs.filter(v=>(v.title+' '+v.channel).toLowerCase().includes(state.q));
+  if(state.sort==='velocity')vs.sort((a,b)=>(b.velocity||0)-(a.velocity||0)||(b.views||0)-(a.views||0));
+  else if(state.sort==='views')vs.sort((a,b)=>(b.views||0)-(a.views||0));
+  else vs.sort((a,b)=>(a.ago_hours||9e9)-(b.ago_hours||9e9));
+
+  const shown=vs.slice(0,state.limit);
+  $('grid').innerHTML=shown.length?shown.map(card).join(''):'<div class="empty">조건에 맞는 영상이 없습니다</div>';
+  $('more').style.display=vs.length>state.limit?'block':'none';
+  $('ft').textContent=`${vs.length}개 영상 · 매일 아침 자동 갱신 · API 키 없이 수집`;
+}
+
+function card(v){
+  const p=PLAT[v.platform]||{name:v.platform};
+  const img=v.thumb?`<img loading="lazy" src="${esc(v.thumb)}" alt="" onerror="this.outerHTML='<div class=ph>🎬</div>'">`:`<div class="ph">🎬</div>`;
+  const stats=[];
+  if(v.views)stats.push(`<span class="vw">👁 ${v.views_text||fmt(v.views)}</span>`);
+  if(v.velocity)stats.push(`<span class="hot">🔥 ${fmt(v.velocity)}/h</span>`);
+  if(v.ago_text)stats.push(esc(v.ago_text));
+  if(v.extra)stats.push(esc(v.extra));
+  return `<a class="card" href="${esc(v.url)}" target="_blank" rel="noopener">
+    <div class="thumb">${img}<span class="badge b-${v.platform}">${p.name}</span>${v.duration?`<span class="dur">${fdur(v.duration)}</span>`:''}</div>
+    <div class="meta"><div class="t">${esc(v.title)||'(제목 없음)'}</div>${v.channel?`<div class="ch">${esc(v.channel)}</div>`:''}<div class="st">${stats.join(' ')}</div></div>
+  </a>`;
+}
+boot();
+</script>
+</body>
+</html>
