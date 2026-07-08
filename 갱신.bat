@@ -12,7 +12,8 @@ if errorlevel 1 (
 )
 git add docs
 git diff --cached --quiet || git commit -m "manual-update %date%"
-git pull --rebase -X ours origin main
+git fetch origin main
+git merge -s ours origin/main -m "merge remote"
 git push
 start "" "https://blinkaistudio.github.io/viral-video-hub/"
 echo 완료! 브라우저에서 확인하세요.
