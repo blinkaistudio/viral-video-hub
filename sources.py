@@ -16,12 +16,44 @@ from common import session, video, parse_views, parse_ago_hours, parse_duration
 YT_SP_WEEK = "CAMSBAgDEAE%3D"
 YT_SP_DAY = "CAMSBAgCEAE%3D"
 
-YT_QUERIES_KR = ["쇼츠", "챌린지", "예능", "먹방", "브이로그", "하이라이트", "광고", "AI"]
+YT_QUERIES_KR = ["쇼츠", "챌린지", "예능", "먹방", "브이로그", "하이라이트", "광고", "AI",
+                 "아이돌", "드라마", "개그", "리뷰"]
 YT_QUERIES_GLOBAL = ["shorts", "challenge", "viral", "trailer", "AI", "satisfying"]
+
+# run_all.py가 fetch_kr_trends() 결과를 여기 주입 → 트렌드 키워드 기반 수집에 사용
+KR_TRENDS = []
+
+
+def fetch_kr_trends():
+    """한국 실시간 트렌드 키워드 (구글 트렌드 KR RSS + signal.bz 실검). 영상이 아닌 키워드 소스."""
+    s = session()
+    out, seen = [], set()
+    try:
+        r = s.get("https://trends.google.com/trending/rss?geo=KR", timeout=15)
+        root = ET.fromstring(r.content)
+        for item in root.iter("item"):
+            kw = (item.findtext("title") or "").strip()
+            traffic = (item.findtext("{https://trends.google.com/trending/rss}approx_traffic") or "").strip()
+            if kw and kw.lower() not in seen:
+                seen.add(kw.lower())
+                out.append({"keyword": kw, "traffic": traffic, "source": "구글 트렌드"})
+    except Exception as e:
+        print(f"  구글트렌드 실패: {e}")
+    try:
+        r = s.get("https://api.signal.bz/news/realtime", timeout=10)
+        for row in r.json().get("top10", []):
+            kw = (row.get("keyword") or "").strip()
+            if kw and kw.lower() not in seen:
+                seen.add(kw.lower())
+                out.append({"keyword": kw, "traffic": "", "source": "실시간 검색어"})
+    except Exception as e:
+        print(f"  signal.bz 실패: {e}")
+    return out[:20]
 
 
 def _yt_search(s, query, sp, gl, hl, region_label):
-    url = (f"https://www.youtube.com/results?search_query={query}"
+    from urllib.parse import quote_plus
+    url = (f"https://www.youtube.com/results?search_query={quote_plus(query)}"
            f"&sp={sp}&gl={gl}&hl={hl}")
     r = s.get(url, timeout=20)
     r.raise_for_status()
@@ -66,32 +98,52 @@ def _yt_search(s, query, sp, gl, hl, region_label):
 def fetch_youtube():
     s = session()
     seen, items = set(), []
-    jobs = ([(q, "KR", "ko", "KR") for q in YT_QUERIES_KR] +
-            [(q, "US", "en", "Global") for q in YT_QUERIES_GLOBAL])
-    for q, gl, hl, label in jobs:
+    # 실시간 트렌드 키워드는 '오늘 업로드' 필터로 — 지금 한국에서 터지는 영상 포착
+    trend_jobs = [(t["keyword"], "KR", "ko", "KR", YT_SP_DAY) for t in KR_TRENDS[:6]]
+    jobs = (trend_jobs +
+            [(q, "KR", "ko", "KR", YT_SP_WEEK) for q in YT_QUERIES_KR] +
+            [(q, "US", "en", "Global", YT_SP_WEEK) for q in YT_QUERIES_GLOBAL])
+    for q, gl, hl, label, sp in jobs:
         try:
-            for it in _yt_search(s, q, YT_SP_WEEK, gl, hl, label):
+            for it in _yt_search(s, q, sp, gl, hl, label):
                 if it["id"] not in seen and it["views"]:
                     seen.add(it["id"])
                     items.append(it)
         except Exception as e:
             print(f"  yt query '{q}' 실패: {e}")
         time.sleep(0.5)
-    # 시간당 조회수(바이럴 속도) 우선 정렬, 상위 60개
+    # 시간당 조회수(바이럴 속도) 우선 정렬 — 국내/글로벌 각각 상위 보장
     items.sort(key=lambda x: (x["velocity"] or 0, x["views"] or 0), reverse=True)
-    return items[:60]
+    kr = [v for v in items if v["region"] == "KR"][:45]
+    gl_ = [v for v in items if v["region"] != "KR"][:40]
+    return kr + gl_
 
 
 # ---------------------------------------------------------------- TikTok (tikwm)
+def _tikwm_items(d):
+    data = d.get("data")
+    if isinstance(data, dict):
+        return data.get("videos") or []
+    return data or []
+
+
 def fetch_tiktok():
     s = session()
     seen, items = set(), []
-    for region in ["KR", "US", "JP"]:
+    # 한국 키워드 검색 (트렌드 상위 + 고정 키워드) + 지역 트렌딩 피드
+    kr_keywords = [t["keyword"] for t in KR_TRENDS[:3]] + ["챌린지", "한국"]
+    jobs = ([("search", kw) for kw in kr_keywords] +
+            [("feed", r) for r in ["KR", "US", "JP"]])
+    for kind, arg in jobs:
         try:
-            r = s.get(f"https://www.tikwm.com/api/feed/list?region={region}&count=20", timeout=25)
+            if kind == "search":
+                r = s.post("https://www.tikwm.com/api/feed/search",
+                           data={"keywords": arg, "count": 12, "region": "KR"}, timeout=25)
+            else:
+                r = s.get(f"https://www.tikwm.com/api/feed/list?region={arg}&count=20", timeout=25)
             d = r.json()
-            for it in d.get("data") or []:
-                vid = str(it.get("video_id", ""))
+            for it in _tikwm_items(d):
+                vid = str(it.get("video_id") or it.get("id") or "")
                 author = it.get("author") or {}
                 uid = author.get("unique_id", "")
                 if not vid or not uid or vid in seen:
@@ -110,14 +162,16 @@ def fetch_tiktok():
                     ago_hours=ago_h,
                     ago_text=_ago_kr(ago_h),
                     duration=it.get("duration"),
-                    region="KR" if region == "KR" else "Global",
+                    region="KR" if it.get("region") == "KR" else "Global",
                     extra=f"❤️ {_num(it.get('digg_count'))}",
                 ))
         except Exception as e:
-            print(f"  tiktok {region} 실패: {e}")
+            print(f"  tiktok {kind}:{arg} 실패: {e}")
         time.sleep(1.5)
     items.sort(key=lambda x: (x["velocity"] or 0, x["views"] or 0), reverse=True)
-    return items[:45]
+    kr = [v for v in items if v["region"] == "KR"][:30]
+    gl_ = [v for v in items if v["region"] != "KR"][:30]
+    return kr + gl_
 
 
 def _num(n):
@@ -150,7 +204,9 @@ def _ddg_videos(s, query, df="w"):
 def fetch_instagram():
     s = session()
     seen, items = set(), []
-    for q in ["instagram reels viral site:instagram.com", "인스타 릴스 인기 site:instagram.com", "instagram.com/reel"]:
+    queries = ["instagram reels viral site:instagram.com", "인스타 릴스 인기 site:instagram.com", "instagram.com/reel"]
+    queries += [f"{t['keyword']} site:instagram.com" for t in KR_TRENDS[:2]]
+    for q in queries:
         try:
             for x in _ddg_videos(s, q):
                 content = x.get("content") or ""

@@ -84,8 +84,14 @@ def fmt_views(n):
     return f"{n:,}"
 
 
+HANGUL = re.compile(r"[가-힣]")
+
+
 def video(platform, vid, title, url, thumb, channel="", views=None, views_text="",
           ago_hours=None, ago_text="", duration=None, region="", extra=""):
+    # 국내/글로벌 분류는 제목·채널의 한글 유무로 통일
+    # (KR 지역 검색이어도 외국 콘텐츠가 섞여 들어오므로 쿼리 출처보다 정확)
+    region = "KR" if HANGUL.search(f"{title or ''} {channel or ''}") else "Global"
     v = {
         "id": f"{platform}:{vid}",
         "platform": platform,

@@ -7,7 +7,8 @@
 import sys, json, time, datetime
 from pathlib import Path
 from common import DOCS, ARCHIVE, THUMBS, session, thumb_key
-from sources import ALL_SOURCES
+import sources
+from sources import ALL_SOURCES, fetch_kr_trends
 from insights import build_insights
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -67,6 +68,16 @@ def main():
     for v in prev.get("videos", []):
         prev_by_platform.setdefault(v["platform"], []).append(v)
 
+    # 🇰🇷 한국 실시간 트렌드 키워드 먼저 수집 → 각 소스의 키워드 기반 검색에 주입
+    print("[한국 트렌드] 수집 중...")
+    kr_trends = []
+    try:
+        kr_trends = fetch_kr_trends()
+        sources.KR_TRENDS = kr_trends
+        print(f"  ✓ 키워드 {len(kr_trends)}개: " + ", ".join(t["keyword"] for t in kr_trends[:6]))
+    except Exception as e:
+        print(f"  ✗ 트렌드 실패 (키워드 없이 진행): {e}")
+
     videos, source_status = [], {}
     for name, fn in ALL_SOURCES.items():
         print(f"[{name}] 수집 중...")
@@ -93,6 +104,12 @@ def main():
 
     print("[인사이트] 계산...")
     ins = build_insights(videos)
+    ins["kr_trends"] = kr_trends
+    kr_n = sum(1 for v in videos if v.get("region") == "KR")
+    if kr_n:
+        ins["comments"].insert(0, f"🇰🇷 국내 콘텐츠 {kr_n}건 수집 — 실시간 트렌드 키워드"
+                               + (f"('{kr_trends[0]['keyword']}' 외 {len(kr_trends)-1}개)" if kr_trends else "")
+                               + " 기반 검색이 포함되어 있습니다. 국내 필터로 모아 보세요.")
 
     data = {
         "generated_at": now.isoformat(),

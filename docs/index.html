@@ -47,6 +47,8 @@ header{position:sticky;top:0;z-index:20;background:rgba(13,16,23,.92);backdrop-f
 .kchip .n{color:var(--ink3);font-size:11px;margin-left:3px}
 .kchip.rise{border-color:#7a4a1e;color:var(--hot)}
 .kchip.cross{border-color:#274a6e;color:#7cc4ff}
+.kchip.kr{border-color:#6e2731;color:#ff8a94}
+.kchip.kr .src{color:var(--ink3);font-size:10px;margin-left:4px}
 .vel-list{list-style:none}
 .vel-list li{padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px;display:flex;gap:8px;align-items:baseline}
 .vel-list li:last-child{border-bottom:0}
@@ -127,6 +129,7 @@ const PLAT = {
   reddit:{name:'레딧',color:'var(--rd)'}
 };
 let DATA=null, state={platform:'all', region:'all', sort:'velocity', q:'', limit:60};
+if(location.hash==='#kr')state.region='KR';   // 국내 전용 바로가기: URL 뒤에 #kr
 
 const $=id=>document.getElementById(id);
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -164,6 +167,7 @@ function renderInsights(){
   h+=`<div class="tile"><div class="v">${okN}/${Object.keys(DATA.sources).length}</div><div class="l">소스 정상</div></div>`;
   h+='</div>';
 
+  if(ins.kr_trends?.length){h+='<div class="sec-t">🇰🇷 지금 한국에서 뜨는 검색어</div><div class="chips">'+ins.kr_trends.slice(0,14).map(t=>`<span class="kchip kr" data-k="${esc(t.keyword)}">${esc(t.keyword)}${t.traffic?`<span class="n">${esc(t.traffic)}</span>`:''}<span class="src">${esc(t.source)}</span></span>`).join('')+'</div>'}
   if(ins.comments?.length){h+='<div class="sec-t">제작자 노트</div><ul class="cmt">'+ins.comments.map(c=>`<li>${esc(c)}</li>`).join('')+'</ul>'}
   if(ins.rising?.length){h+='<div class="sec-t">🚀 어제 대비 급상승 키워드</div><div class="chips">'+ins.rising.map(r=>`<span class="kchip rise" data-k="${esc(r.keyword)}">${esc(r.keyword)}<span class="n">${r.yesterday}→${r.today}</span></span>`).join('')+'</div>'}
   if(ins.cross_platform?.length){h+='<div class="sec-t">🌐 크로스 플랫폼 토픽 (2개+ 플랫폼 동시 등장)</div><div class="chips">'+ins.cross_platform.map(c=>`<span class="kchip cross" data-k="${esc(c.keyword)}">${esc(c.keyword)}<span class="n">${c.platforms.length}곳</span></span>`).join('')+'</div>'}
@@ -182,7 +186,7 @@ function renderFilters(){
   $('pf').querySelectorAll('.fchip').forEach(c=>c.onclick=()=>{state.platform=c.dataset.p;state.limit=60;renderFilters();render()});
   const regions=[['all','🌍 전체'],['KR','🇰🇷 국내'],['Global','🌐 글로벌']];
   $('rf').innerHTML=regions.map(([k,n])=>`<span class="fchip${state.region===k?' on':''}" data-r="${k}">${n}</span>`).join('');
-  $('rf').querySelectorAll('.fchip').forEach(c=>c.onclick=()=>{state.region=c.dataset.r;state.limit=60;renderFilters();render()});
+  $('rf').querySelectorAll('.fchip').forEach(c=>c.onclick=()=>{state.region=c.dataset.r;state.limit=60;history.replaceState(null,'',c.dataset.r==='KR'?'#kr':location.pathname);renderFilters();render()});
 }
 
 function render(){
